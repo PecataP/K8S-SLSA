@@ -1,17 +1,7 @@
-Responsible Disclosure Policy (project: Securing Kubernetes)
+To encourage ethical security research and safeguard project integrity, the following responsible-disclosure policy applies:
+•	Individuals who identify a vulnerability in this project are requested to report it privately via email to the project owner.
 
-If you discover a vulnerability in this project, please:
+•	The team will acknowledge receipt within three business days and coordinate remediation before any public disclosure.
 
-Contact the project owner at: 
-
-Provide a clear description, steps to reproduce, impact, and any PoC code.
-
-Do not publish the vulnerability publicly until it has been acknowledged and fixed or we have agreed on a coordinated disclosure date (default: 30 days).
-
-We will:
-
-Acknowledge receipt within 3 business days.
-
-Provide regular updates and an expected timeline for remediation.
-
-Credit the reporter unless they request anonymity.
+•	Reports should include a clear description, reproduction steps, and impact assessment.
+Disclosure will be coordinated following industry best practices, typically allowing thirty days for resolution.
