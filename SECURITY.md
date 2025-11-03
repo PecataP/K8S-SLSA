@@ -1,8 +1,8 @@
-Responsible Disclosure Policy (project: Securing Kubernetes Demo)
+Responsible Disclosure Policy (project: Securing Kubernetes)
 
 If you discover a vulnerability in this project, please:
 
-Contact the project owner at: <project-email-or-github-issue-private> (replace before publishing).
+Contact the project owner at: 
 
 Provide a clear description, steps to reproduce, impact, and any PoC code.
 
