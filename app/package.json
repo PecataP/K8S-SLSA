@@ -1,0 +1,10 @@
+{
+  "name": "mini-web",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node app/server.js"
+  },
+  "engines": { "node": ">=18" }
+}
