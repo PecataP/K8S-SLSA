@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/category: Security, Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Only allows container images from trusted registries (GHCR in this case).
+      This prevents pods from running images from untrusted sources.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: restrict-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - demo
+      validate:
+        message: >-
+          Images must come from approved registries: ghcr.io
+        pattern:
+          spec:
+            containers:
+              - image: "ghcr.io/*"

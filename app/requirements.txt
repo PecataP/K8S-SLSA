@@ -1,0 +1,5 @@
+# Python dependencies for the web application
+# Currently using only Python standard library (http.server)
+# Add dependencies here as needed, e.g.:
+# flask==3.0.0
+# gunicorn==21.2.0

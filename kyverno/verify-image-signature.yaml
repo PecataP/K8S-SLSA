@@ -1,0 +1,47 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+  annotations:
+    policies.kyverno.io/title: Verify Image Signature with Cosign
+    policies.kyverno.io/category: Security, Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      This policy verifies that all container images are signed using Cosign
+      with keyless signing (OIDC). Images must have valid signatures from
+      GitHub Actions workflows in this repository.
+spec:
+  validationFailureAction: Enforce  # Change to "Audit" for testing
+  background: false
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    - name: verify-cosign-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - demo
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/*/python-slsa-web*"
+          attestors:
+            - entries:
+                - keyless:
+                    subject: "https://github.com/{{GITHUB_REPO_OWNER}}/{{GITHUB_REPO_NAME}}/.github/workflows/ci.yml@*"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev
+          # Optional: require attestations (SLSA provenance, SBOM)
+          attestations:
+            - predicateType: https://slsa.dev/provenance/v1
+              attestors:
+                - entries:
+                    - keyless:
+                        subject: "https://github.com/{{GITHUB_REPO_OWNER}}/{{GITHUB_REPO_NAME}}/.github/workflows/ci.yml@*"
+                        issuer: "https://token.actions.githubusercontent.com"
+                        rekor:
+                          url: https://rekor.sigstore.dev

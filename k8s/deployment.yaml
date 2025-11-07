@@ -1,28 +1,117 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mini-web
+  name: python-slsa-web
   namespace: demo
+  labels:
+    app: python-slsa-web
+    version: v1
+    component: web-server
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mini-web
+      app: python-slsa-web
   template:
     metadata:
       labels:
-        app: mini-web
+        app: python-slsa-web
+        version: v1
+        component: web-server
+      annotations:
+        # Force pod restart on config changes
+        kubectl.kubernetes.io/restartedAt: "2024-01-01T00:00:00Z"
     spec:
-      # uncomment imagePullSecrets if your GHCR repo is private (see below)
+      # Pull secrets for private GHCR repository
       imagePullSecrets:
-       - name: ghcr-creds
+        - name: ghcr-creds
+
+      # Security context at pod level
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
       containers:
-        - name: web
-          image: ghcr.io/PecataP/mini-web:latest
+        - name: python-slsa-web
+          # Use digest-based image reference for immutability
+          # Replace with actual digest after CI build:
+          # image: ghcr.io/YOUR_USERNAME/python-slsa-web@sha256:...
+          image: ghcr.io/YOUR_USERNAME/python-slsa-web:latest
           imagePullPolicy: Always
+
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # Security context at container level
           securityContext:
             runAsNonRoot: true
+            runAsUser: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          # Resource limits and requests
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Environment variables
+          env:
+            - name: PORT
+              value: "8080"
+
+          # Volume mounts for writable paths (since root is read-only)
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      # Volumes
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+      # Scheduling and affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - python-slsa-web
+                topologyKey: kubernetes.io/hostname
