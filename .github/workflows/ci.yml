@@ -20,7 +20,7 @@ jobs:
   # SLSA Level 1: Automated build process
   build-push:
     name: Build and Push Container
-    runs-on: ubuntu-latest  # Changed to ubuntu-latest for GitHub-hosted runners
+    runs-on: self-hosted  # Using self-hosted runner
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-name: ${{ env.IMAGE_NAME }}
@@ -79,7 +79,7 @@ jobs:
   sign:
     name: Sign Container with Cosign
     needs: [build-push]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       id-token: write
       packages: write
@@ -116,7 +116,7 @@ jobs:
   deploy:
     name: Deploy to Kubernetes
     needs: [build-push, sign, provenance]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'workflow_dispatch'  # Manual trigger only
     steps:
       - name: Checkout
@@ -146,7 +146,7 @@ jobs:
   summary:
     name: Build Summary
     needs: [build-push, sign, provenance]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: always()
     steps:
       - name: Print summary
