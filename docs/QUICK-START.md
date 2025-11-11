@@ -1,17 +1,17 @@
 # Quick Start Guide - SLSA L1 + L2
 
-Get your SLSA L1+L2 pipeline running in **5 minutes**.
+Get your SLSA L1+L2 pipeline running in.
 
-## ⚡ Prerequisites
+## Prerequisites
 
 - Self-hosted GitHub Actions runner (running)
 - Docker installed on runner
 - Kubernetes cluster with GHCR configured
 - GitHub PAT with `packages:write` permission
 
-## 🚀 Setup Steps
+## Setup Steps
 
-### 1. Clone and Configure (2 minutes)
+### 1. Clone and Configure
 
 ```bash
 # Clone your repo
@@ -25,7 +25,7 @@ sed -i 's/YOUR_USERNAME/YOUR_GITHUB_USERNAME/g' .github/workflows/slsa-l1-l2.yml
 sed -i 's/YOUR_USERNAME/YOUR_GITHUB_USERNAME/g' k8s/deployment.yaml
 ```
 
-### 2. Create Kubernetes Resources (1 minute)
+### 2. Create Kubernetes Resources
 
 ```bash
 # Create namespace
@@ -39,7 +39,7 @@ kubectl create secret docker-registry ghcr-creds \
   --namespace=demo
 ```
 
-### 3. Trigger Build (1 minute)
+### 3. Trigger Build
 
 ```bash
 # Commit and push
@@ -51,7 +51,7 @@ git push origin main
 gh run watch
 ```
 
-### 4. Deploy to Kubernetes (1 minute)
+### 4. Deploy to Kubernetes
 
 ```bash
 # Wait for CI to complete, then deploy
@@ -73,7 +73,7 @@ curl http://localhost:8080
 # Should see: "Hello from secure CI/CD with SLSA + Cosign (Python Edition)!"
 ```
 
-## ✅ Verify SLSA Compliance
+##  Verify SLSA Compliance
 
 ### Check Provenance Exists
 
@@ -103,16 +103,9 @@ gh run view <RUN_ID>
 # - Provenance was generated automatically
 ```
 
-## 📊 What You've Achieved
 
-- ✅ **SLSA Build L1**: Automated build with provenance
-- ✅ **SLSA Build L2**: Hosted build platform (GitHub Actions)
-- ✅ **Container Image**: Pushed to GHCR
-- ✅ **SLSA Provenance**: Attached to image
-- ✅ **SBOM**: Software Bill of Materials generated
-- ✅ **Kubernetes Deployment**: Running in your cluster
 
-## 🔍 Troubleshooting
+##  Troubleshooting
 
 ### Pipeline Not Starting
 
@@ -143,21 +136,12 @@ grep "provenance:" .github/workflows/slsa-l1-l2.yml
 docker buildx version
 ```
 
-## 📚 Next Steps
 
-1. **Read SLSA-L1-L2-EXPLAINED.md** to understand what you just built
-2. **Add Cosign signing** for image verification
-3. **Add Wazuh** for security monitoring
-4. **Add Kyverno** for policy enforcement
-5. **Implement SLSA L3** with slsa-github-generator
 
-## 🆘 Getting Help
+## Getting Help
 
 - Check logs: `kubectl logs -n demo -l app=python-slsa-web`
 - View CI logs: `gh run view <RUN_ID> --log`
 - Check runner: `gh api repos/:owner/:repo/actions/runners`
 - Read docs: `docs/SLSA-L1-L2-EXPLAINED.md`
 
----
-
-**That's it! You now have SLSA L1+L2 working!** 🎉
