@@ -55,3 +55,6 @@ kubeconfig
 *.tmp
 tmp/
 temp/
+
+# Claude Code
+.claude/
