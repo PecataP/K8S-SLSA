@@ -21,8 +21,8 @@ spec:
 
       containers:
         - name: python-slsa-web
-          # Update this with your actual image after CI build
-          image: ghcr.io/YOUR_USERNAME/python-slsa-web:latest
+          
+          image: ghcr.io/PecataP/python-slsa-web:latest
           imagePullPolicy: Always
 
           ports:
