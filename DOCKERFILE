@@ -11,16 +11,15 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.11-alpine
 WORKDIR /app
 
-# Copy Python dependencies from build stage
-COPY --from=build /root/.local /root/.local
+# Create non-root user for security (before copying files)
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser
+
+# Copy Python dependencies from build stage to appuser's home
+COPY --from=build --chown=appuser:appuser /root/.local /home/appuser/.local
 
 # Copy application code
-COPY app/app.py .
-
-# Create non-root user for security
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser && \
-    chown -R appuser:appuser /app
+COPY --chown=appuser:appuser app/app.py .
 
 # Switch to non-root user
 USER appuser
@@ -29,7 +28,7 @@ USER appuser
 EXPOSE 8080
 
 # Set Python path to include user-installed packages
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 # Run the application
 CMD ["python3", "app.py"]

@@ -15,14 +15,14 @@ spec:
       labels:
         app: python-slsa-web
     spec:
-      # Image pull secrets for GHCR (if private)
-      imagePullSecrets:
-        - name: ghcr-creds
+      # Image pull secrets for GHCR (uncomment if repository is private)
+       imagePullSecrets:
+         - name: ghcr-creds
 
       containers:
         - name: python-slsa-web
-          
-          image: ghcr.io/PecataP/python-slsa-web:latest
+
+          image: ghcr.io/pecatap/python-slsa-web:latest
           imagePullPolicy: Always
 
           ports:
