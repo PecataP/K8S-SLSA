@@ -2,7 +2,7 @@
 
 This document explains **exactly** what SLSA Build Level 1 and Level 2 mean, how we implement them, and how to verify compliance.
 
-## 📖 Table of Contents
+## Table of Contents
 
 - [What is SLSA?](#what-is-slsa)
 - [SLSA Build Level 1](#slsa-build-level-1)
@@ -25,11 +25,11 @@ Think of it as a **report card** for your build process:
 
 ### Requirements (from [slsa.dev](https://slsa.dev/spec/v1.1/levels))
 
-1. ✅ **Build process is fully scripted/automated**
+1. **Build process is fully scripted/automated**
    - No manual steps (like clicking buttons or running commands by hand)
    - Everything is code/configuration
 
-2. ✅ **Provenance exists**
+2. **Provenance exists**
    - There's a document that says "this artifact was built from source X using process Y"
    - It's like a receipt for your build
 
@@ -57,8 +57,8 @@ $ docker push myapp
 ```
 
 Now you have:
-- ✅ Automated build (GitHub Actions)
-- ✅ Provenance document attached to the image
+- Automated build (GitHub Actions)
+- Provenance document attached to the image
 
 ### The Provenance Document
 
@@ -88,13 +88,13 @@ This says: "This artifact was built from commit `abc123` in YOUR_REPO"
 
 ### Requirements (from [slsa.dev](https://slsa.dev/spec/v1.1/levels))
 
-1. ✅ **All Build L1 requirements**
+1. **All Build L1 requirements**
 
-2. ✅ **Hosted build platform**
+2. **Hosted build platform**
    - Build happens on a service (not your laptop)
    - Examples: GitHub Actions, GitLab CI, Cloud Build
 
-3. ✅ **Build service generates provenance**
+3. **Build service generates provenance**
    - The build platform (not you) creates the provenance
    - You can't manually edit it
 
@@ -110,7 +110,7 @@ This says: "This artifact was built from commit `abc123` in YOUR_REPO"
 
 **Example:**
 
-❌ **NOT Build L2** (even with provenance):
+**NOT Build L2** (even with provenance):
 ```bash
 # Build on your laptop
 $ docker build --provenance=true -t myapp .
@@ -119,7 +119,7 @@ $ docker build --provenance=true -t myapp .
 # Problem: No way to verify WHERE it was built
 ```
 
-✅ **IS Build L2**:
+**IS Build L2**:
 ```yaml
 # In GitHub Actions
 jobs:
@@ -189,7 +189,7 @@ jobs:
           provenance: true  # ← Build L1 requirement
 ```
 
-✅ **Build L1 achieved because:**
+**Build L1 achieved because:**
 - Entire build is scripted (YAML workflow)
 - Provenance is automatically generated
 - No manual intervention needed
@@ -204,7 +204,7 @@ jobs:
     runs-on: self-hosted  # ← Hosted build platform
 ```
 
-✅ **Build L2 achieved because:**
+**Build L2 achieved because:**
 - Build runs on GitHub Actions (hosted platform)
 - `docker/build-push-action` generates provenance (not us)
 - Provenance includes `builder.id` identifying GitHub Actions
@@ -274,7 +274,7 @@ gh run view <RUN_ID>
 
 ## Common Misconceptions
 
-### ❌ Misconception 1: "I need SLSA L3 to be secure"
+### Misconception 1: "I need SLSA L3 to be secure"
 
 **Reality:** Build L2 already gives you:
 - Automated, repeatable builds
@@ -288,7 +288,7 @@ Build L3 adds:
 
 But L2 is a HUGE improvement over nothing!
 
-### ❌ Misconception 2: "Provenance = Signature"
+### Misconception 2: "Provenance = Signature"
 
 **Reality:**
 - **Provenance** = A document describing the build
@@ -297,7 +297,7 @@ But L2 is a HUGE improvement over nothing!
 You can have provenance without signatures (SLSA L1/L2).
 You can add signatures later (Cosign, which we'll do next).
 
-### ❌ Misconception 3: "Self-hosted runners aren't 'hosted'"
+### Misconception 3: "Self-hosted runners aren't 'hosted'"
 
 **Reality:**
 - "Hosted" means "controlled by a build service"
@@ -305,7 +305,7 @@ You can add signatures later (Cosign, which we'll do next).
 - Even on your hardware, GitHub orchestrates the process
 - You can't manually interfere mid-build
 
-### ❌ Misconception 4: "I need to verify provenance in K8s"
+### Misconception 4: "I need to verify provenance in K8s"
 
 **Reality (for L1/L2):**
 - Build L1/L2 focus on **generation** of provenance
@@ -366,4 +366,4 @@ Use this to verify your SLSA L1/L2 implementation:
 
 ---
 
-**Understanding SLSA is the first step to securing your supply chain!** 🔒
+**Understanding SLSA is the first step to securing your supply chain!**

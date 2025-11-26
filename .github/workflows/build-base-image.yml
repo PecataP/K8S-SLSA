@@ -68,15 +68,15 @@ jobs:
 
       - name: Display build information
         run: |
-          echo "### Base Image Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Base Image Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** ${{ env.BASE_IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "**Digest:** ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### SLSA Provenance" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Provenance generated and signed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ SBOM attached to image" >> $GITHUB_STEP_SUMMARY
+          echo "- Provenance generated and signed" >> $GITHUB_STEP_SUMMARY
+          echo "- SBOM attached to image" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Update Application" >> $GITHUB_STEP_SUMMARY
           echo "Use this digest in your application Dockerfile:" >> $GITHUB_STEP_SUMMARY
@@ -109,5 +109,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           docker buildx imagetools inspect "${IMAGE}@${DIGEST}"
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Base image provenance verified" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Ready to use in application builds" >> $GITHUB_STEP_SUMMARY
+          echo "Base image provenance verified" >> $GITHUB_STEP_SUMMARY
+          echo "Ready to use in application builds" >> $GITHUB_STEP_SUMMARY

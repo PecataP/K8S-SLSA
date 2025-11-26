@@ -378,7 +378,7 @@ gh workflow run build-base-image.yml
 
 ## Future Enhancements
 
-### Phase 1 (Current) ✅
+### Phase 1 (Current)
 - Custom base image from Docker Hub upstream
 - SLSA L2 provenance
 - Monthly security updates
