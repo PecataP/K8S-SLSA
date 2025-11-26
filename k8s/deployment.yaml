@@ -6,7 +6,7 @@ metadata:
   labels:
     app: python-slsa-web
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: python-slsa-web
@@ -15,14 +15,12 @@ spec:
       labels:
         app: python-slsa-web
     spec:
-      # Image pull secrets for GHCR (uncomment if repository is private)
-       imagePullSecrets:
-         - name: ghcr-creds
-
+      imagePullSecrets:
+        - name: ghcr-creds
       containers:
         - name: python-slsa-web
           image: ghcr.io/pecatap/python-slsa-web:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8000   # change if your app listens on a different port
-
+            - name: http
+              containerPort: 8000
