@@ -28,7 +28,7 @@ permissions:
   packages: write        # Push to GHCR
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner | lowercase }}/python-slsa-web
+  IMAGE_NAME: ghcr.io/pecatap/python-slsa-web
   PYTHON_VERSION: "3.11"
 
 jobs:
