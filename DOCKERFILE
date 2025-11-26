@@ -7,7 +7,10 @@ FROM ghcr.io/pecatap/python-slsa-base:latest AS build
 USER root
 WORKDIR /src
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install dependencies (creates /root/.local only if requirements.txt has packages)
+RUN pip install --no-cache-dir --user -r requirements.txt && \
+    # Ensure directory exists even if no packages installed
+    mkdir -p /root/.local
 
 # Runtime stage - using our custom base image
 FROM ghcr.io/pecatap/python-slsa-base:latest
