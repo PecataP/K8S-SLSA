@@ -19,7 +19,7 @@ permissions:
   packages: write
 
 env:
-  BASE_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/python-slsa-base
+  BASE_IMAGE_NAME: ghcr.io/${{ github.repository_owner | lowercase }}/python-slsa-base
 
 jobs:
   build-base-image:
