@@ -1,14 +1,15 @@
-# Kubernetes SLSA L1 + L2 Pipeline
+# Kubernetes SLSA L1 + L2 Pipeline with GitOps
 
 
 Project Overview
 
-This project demonstrates SLSA Build Levels 1 and 2 without the complexity of additional security tools. The focus is on understanding and implementing the core SLSA requirements:
+This project demonstrates SLSA Build Levels 1 and 2 with GitOps-based continuous deployment. The focus is on understanding and implementing the core SLSA requirements:
 
 -  SLSA Build L1: Scripted build with provenance generation
 -  SLSA Build L2: Hosted build platform (GitHub Actions)
 -  Python Application: Simple HTTP server
 -  Kubernetes: Basic deployment to your K8s cluster
+-  ArgoCD: GitOps continuous deployment
 
  SLSA Build Level 1 Requirements
 
@@ -43,6 +44,7 @@ How we achieve this:
 -  Self-hosted GitHub Actions runner
 -  Docker on the runner
 -  Git
+-  ArgoCD installed in cluster (optional but recommended)
 
  Quick Start
 
@@ -262,4 +264,41 @@ grep "provenance:" .github/workflows/slsa-l1-l2.yml
 
 # Should output: provenance: true
 ```
+
+ Issue: Docker Hub Rate Limit
+
+Error: `toomanyrequests: You have reached your unauthenticated pull rate limit`
+
+Solution:
+```bash
+# 1. Create Docker Hub access token at https://hub.docker.com/settings/security
+
+# 2. Add GitHub secrets (Settings → Secrets → Actions):
+#    - DOCKERHUB_USERNAME: your Docker Hub username
+#    - DOCKERHUB_TOKEN: your access token
+
+# 3. The workflow already includes Docker Hub authentication
+```
+
+## Documentation
+
+- [Quick Start Guide](docs/QUICK-START.md) - Get up and running in 5 minutes
+- [SLSA L1/L2 Explained](docs/SLSA-L1-L2-EXPLAINED.md) - Detailed explanation of SLSA concepts
+- [ArgoCD GitOps Setup](docs/ARGOCD-GITOPS.md) - GitOps continuous deployment with ArgoCD
+
+## GitOps Deployment (Optional)
+
+If you have ArgoCD installed, you can enable automated GitOps deployment:
+
+```bash
+# Deploy ArgoCD Application
+kubectl apply -f argocd/application.yaml
+
+# ArgoCD will now automatically:
+# - Watch the k8s/ folder for changes
+# - Auto-sync deployments to your cluster
+# - Self-heal if manual changes are made
+```
+
+See [ArgoCD GitOps documentation](docs/ARGOCD-GITOPS.md) for complete setup instructions.
 
