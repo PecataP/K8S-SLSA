@@ -6,7 +6,7 @@ metadata:
   labels:
     app: python-slsa-web
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: python-slsa-web
@@ -15,51 +15,12 @@ spec:
       labels:
         app: python-slsa-web
     spec:
-      # Image pull secrets for GHCR (uncomment if repository is private)
-       imagePullSecrets:
-         - name: ghcr-creds
-
+      imagePullSecrets:
+        - name: ghcr-creds
       containers:
         - name: python-slsa-web
-
           image: ghcr.io/pecatap/python-slsa-web:latest
-          imagePullPolicy: Always
-
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
-              protocol: TCP
-
-          # Basic security context
-          securityContext:
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
-
-          # Resource limits
-          resources:
-            requests:
-              memory: "64Mi"
-              cpu: "100m"
-            limits:
-              memory: "128Mi"
-              cpu: "200m"
-
-          # Health checks
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 5
-
-          # Environment variables
-          env:
-            - name: PORT
-              value: "8080"
