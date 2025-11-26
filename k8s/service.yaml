@@ -13,7 +13,6 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: http  # References the named port in deployment
+      targetPort: 8000
       nodePort: 30080
-      protocol: TCP
-  sessionAffinity: None
+
