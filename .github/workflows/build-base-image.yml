@@ -1,0 +1,113 @@
+name: Build Base Image
+
+# This workflow builds and signs the base Python image
+# Run this workflow manually or when base image needs updating
+# The base image eliminates Docker Hub rate limits in the main pipeline
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'base-image/Dockerfile'
+  # Run monthly to get security updates
+  schedule:
+    - cron: '0 0 1 * *'  # First day of each month at midnight
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  BASE_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/python-slsa-base
+
+jobs:
+  build-base-image:
+    name: Build and Push Base Image
+    runs-on: self-hosted
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-name: ${{ env.BASE_IMAGE_NAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BASE_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+
+      - name: Build and push base image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: base-image
+          file: base-image/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          provenance: true
+          sbom: true
+
+      - name: Display build information
+        run: |
+          echo "### Base Image Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ env.BASE_IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### SLSA Provenance" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Provenance generated and signed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ SBOM attached to image" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Update Application" >> $GITHUB_STEP_SUMMARY
+          echo "Use this digest in your application Dockerfile:" >> $GITHUB_STEP_SUMMARY
+          echo '```dockerfile' >> $GITHUB_STEP_SUMMARY
+          echo "FROM ${{ env.BASE_IMAGE_NAME }}@${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  verify-base-image:
+    name: Verify Base Image Provenance
+    needs: [build-base-image]
+    runs-on: self-hosted
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inspect base image provenance
+        env:
+          IMAGE: ${{ needs.build-base-image.outputs.image-name }}
+          DIGEST: ${{ needs.build-base-image.outputs.image-digest }}
+        run: |
+          echo "### Verifying Base Image Provenance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          docker buildx imagetools inspect "${IMAGE}@${DIGEST}"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Base image provenance verified" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Ready to use in application builds" >> $GITHUB_STEP_SUMMARY

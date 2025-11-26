@@ -48,7 +48,23 @@ How we achieve this:
 
  Quick Start
 
- Step 1: Update Configuration
+ Step 1: Build Base Image First
+
+This project uses a custom base image to avoid Docker Hub rate limits:
+
+```bash
+# Trigger the base image build workflow
+gh workflow run build-base-image.yml
+
+# Or push the base-image directory
+git add base-image/
+git commit -m "Add base image"
+git push
+```
+
+Wait for the base image to build (check at: https://github.com/YOUR_USERNAME/K8S-SLSA/actions)
+
+ Step 2: Update Configuration
 
 Edit `.github/workflows/slsa-l1-l2.yml` and replace:
 ```yaml
@@ -56,7 +72,7 @@ IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/python-slsa-web
 ```
 
 
- Step 2: Create Kubernetes Namespace
+ Step 3: Create Kubernetes Namespace
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -267,23 +283,23 @@ grep "provenance:" .github/workflows/slsa-l1-l2.yml
 
  Issue: Docker Hub Rate Limit
 
-Error: `toomanyrequests: You have reached your unauthenticated pull rate limit`
+**Solution: We use a custom base image!**
 
-Solution:
-```bash
-# 1. Create Docker Hub access token at https://hub.docker.com/settings/security
+This project eliminates Docker Hub rate limits by:
+1. Building our own base image from Python Alpine (one-time)
+2. Signing it with SLSA provenance
+3. Pushing to GHCR (no rate limits)
+4. Using it in the application build
 
-# 2. Add GitHub secrets (Settings → Secrets → Actions):
-#    - DOCKERHUB_USERNAME: your Docker Hub username
-#    - DOCKERHUB_TOKEN: your access token
+The base image is automatically rebuilt monthly for security updates.
 
-# 3. The workflow already includes Docker Hub authentication
-```
+See [Base Image Documentation](docs/BASE-IMAGE.md) for details.
 
 ## Documentation
 
 - [Quick Start Guide](docs/QUICK-START.md) - Get up and running in 5 minutes
 - [SLSA L1/L2 Explained](docs/SLSA-L1-L2-EXPLAINED.md) - Detailed explanation of SLSA concepts
+- [Base Image Strategy](docs/BASE-IMAGE.md) - Custom base image to eliminate Docker Hub dependency
 - [ArgoCD GitOps Setup](docs/ARGOCD-GITOPS.md) - GitOps continuous deployment with ArgoCD
 
 ## GitOps Deployment (Optional)
