@@ -19,7 +19,10 @@ spec:
         - name: ghcr-creds
       containers:
         - name: python-slsa-web
-          image: ghcr.io/pecatap/python-slsa-web:latest
+          # IMPORTANT: Use digest instead of tags for SLSA L3 compliance
+          # Update this after each CI build with the new digest from GitHub Actions output
+          # Example: ghcr.io/pecatap/python-slsa-web@sha256:abc123...
+          image: ghcr.io/pecatap/python-slsa-web@sha256:REPLACE_WITH_ACTUAL_DIGEST_AFTER_FIRST_BUILD
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

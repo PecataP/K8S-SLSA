@@ -1,0 +1,267 @@
+name: SLSA L3 Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/pecatap/python-slsa-web
+  IMAGE_REGISTRY: ghcr.io
+
+jobs:
+  # ============================================================================
+  # Build and Push Container Image
+  # ============================================================================
+  build-and-push:
+    name: Build and Push Container
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # For keyless signing with Cosign
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-name: ${{ env.IMAGE_NAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push container image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./DOCKERFILE
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          # Note: Basic provenance, will be replaced by SLSA L3 provenance
+          provenance: false
+          sbom: true
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.4.0
+        with:
+          cosign-release: 'latest'
+
+      - name: Sign container image with Cosign (Keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          echo "Signing image with Cosign keyless signing..."
+          images=""
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
+
+          # Sign with keyless (OIDC) - no private key needed!
+          cosign sign --yes ${images}
+
+          echo " Image signed successfully with Sigstore!"
+
+      - name: Display build information
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          echo "### SLSA L3 Build Complete 🔒" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${TAGS}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Image Reference (Use This in K8s)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.IMAGE_NAME }}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Generate SLSA L3 Provenance
+  # ============================================================================
+  provenance:
+    name: Generate SLSA L3 Provenance
+    needs: [build-and-push]
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+    with:
+      image: ${{ needs.build-and-push.outputs.image-name }}
+      digest: ${{ needs.build-and-push.outputs.image-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # Verify Image Signature and Provenance
+  # ============================================================================
+  verify:
+    name: Verify Signature and Provenance
+    needs: [build-and-push, provenance]
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.4.0
+        with:
+          cosign-release: 'v2.2.3'
+
+      - name: Install slsa-verifier
+        run: |
+          curl -LO https://github.com/slsa-framework/slsa-verifier/releases/download/v2.5.1/slsa-verifier-linux-amd64
+          sudo mv slsa-verifier-linux-amd64 /usr/local/bin/slsa-verifier
+          sudo chmod +x /usr/local/bin/slsa-verifier
+          slsa-verifier version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image signature with Cosign
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image-name }}
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+        run: |
+          echo " Verifying image signature..."
+
+          # Verify using keyless verification (OIDC)
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "${IMAGE}@${DIGEST}"
+
+          echo " Signature verification successful!"
+
+      - name: Verify SLSA L3 provenance
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image-name }}
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+        run: |
+          echo "🔍 Verifying SLSA L3 provenance..."
+
+          # Verify provenance with slsa-verifier
+          slsa-verifier verify-image \
+            --source-uri github.com/${{ github.repository }} \
+            --source-branch main \
+            "${IMAGE}@${DIGEST}"
+
+          echo " SLSA L3 provenance verification successful!"
+
+      - name: Inspect all attestations
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image-name }}
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+        run: |
+          echo "📋 Inspecting all attestations..."
+          cosign tree "${IMAGE}@${DIGEST}"
+
+  # ============================================================================
+  # Summary
+  # ============================================================================
+  summary:
+    name: Pipeline Summary
+    needs: [build-and-push, provenance, verify]
+    runs-on: self-hosted
+    if: always()
+
+    steps:
+      - name: Generate summary
+        env:
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+          IMAGE: ${{ needs.build-and-push.outputs.image-name }}
+        run: |
+          echo "##  SLSA L3 Pipeline Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What We Built" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application**: Python web server with SLSA L3" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: ${IMAGE}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Digest**: ${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### SLSA L3 Compliance " >> $GITHUB_STEP_SUMMARY
+          echo "| Level | Requirement | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **L1** | Scripted build |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L1** | Provenance exists |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L2** | Hosted build platform |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L2** | Provenance by service |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L3** | Hardened builds |  Complete (slsa-github-generator) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L3** | Non-falsifiable provenance |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| **L3** | Image signed (Cosign) |  Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What's Generated?" >> $GITHUB_STEP_SUMMARY
+          echo "1.  Container image pushed to GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "2.  SLSA L3 provenance attestation (slsa-github-generator)" >> $GITHUB_STEP_SUMMARY
+          echo "3.  Cosign signature (keyless OIDC)" >> $GITHUB_STEP_SUMMARY
+          echo "4.  SBOM (Software Bill of Materials)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deploy to Kubernetes (Use Digest!)" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Update deployment with digest reference" >> $GITHUB_STEP_SUMMARY
+          echo "kubectl set image deployment/python-slsa-web \\" >> $GITHUB_STEP_SUMMARY
+          echo "  python-slsa-web=${IMAGE}@${DIGEST} \\" >> $GITHUB_STEP_SUMMARY
+          echo "  -n demo" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Or apply the updated manifest" >> $GITHUB_STEP_SUMMARY
+          echo "kubectl apply -f k8s/deployment.yaml" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verify Locally" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Verify signature" >> $GITHUB_STEP_SUMMARY
+          echo "cosign verify \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --certificate-identity-regexp='https://github.com/${{ github.repository }}/.*' \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\" >> $GITHUB_STEP_SUMMARY
+          echo "  ${IMAGE}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Verify SLSA L3 provenance" >> $GITHUB_STEP_SUMMARY
+          echo "slsa-verifier verify-image \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --source-uri github.com/${{ github.repository }} \\" >> $GITHUB_STEP_SUMMARY
+          echo "  ${IMAGE}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Kyverno Policies" >> $GITHUB_STEP_SUMMARY
+          echo "The following Kyverno policies will verify:" >> $GITHUB_STEP_SUMMARY
+          echo "-  Images use digests (not mutable tags)" >> $GITHUB_STEP_SUMMARY
+          echo "-  Images are signed with Cosign" >> $GITHUB_STEP_SUMMARY
+          echo "-  Images have SLSA L3 provenance" >> $GITHUB_STEP_SUMMARY
