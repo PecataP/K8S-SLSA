@@ -152,6 +152,11 @@ jobs:
         with:
           cosign-release: 'v2.2.3'
 
+      - name: Prepare slsa-verifier directory
+        run: |
+          mkdir -p ~/.slsa/bin
+          chmod -R 755 ~/.slsa
+
       - name: Install slsa-verifier
         uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
 
