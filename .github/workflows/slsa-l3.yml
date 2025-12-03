@@ -105,7 +105,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          echo "### SLSA L3 Build Complete 🔒" >> $GITHUB_STEP_SUMMARY
+          echo "### SLSA L3 Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** ${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
@@ -175,14 +175,14 @@ jobs:
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
             "${IMAGE}@${DIGEST}"
 
-          echo " Signature verification successful!"
+          echo "Signature verification successful!"
 
       - name: Verify SLSA L3 provenance
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image-name }}
           DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
         run: |
-          echo "🔍 Verifying SLSA L3 provenance..."
+          echo "Verifying SLSA L3 provenance..."
 
           # Verify provenance with slsa-verifier
           slsa-verifier verify-image \
@@ -190,14 +190,14 @@ jobs:
             --source-branch main \
             "${IMAGE}@${DIGEST}"
 
-          echo " SLSA L3 provenance verification successful!"
+          echo "SLSA L3 provenance verification successful!"
 
       - name: Inspect all attestations
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image-name }}
           DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
         run: |
-          echo "📋 Inspecting all attestations..."
+          echo "Inspecting all attestations..."
           cosign tree "${IMAGE}@${DIGEST}"
 
   # ============================================================================
@@ -232,6 +232,10 @@ jobs:
           cat k8s/deployment.yaml
 
       - name: Commit and push updated deployment
+        env:
+          IMAGE_NAME: ${{ needs.build-and-push.outputs.image-name }}
+          FULL_DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -242,17 +246,18 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update deployment digest to ${DIGEST:0:12}
-
-Automated update from SLSA L3 pipeline
-Image: ${{ needs.build-and-push.outputs.image-name }}
-Digest: ${{ needs.build-and-push.outputs.image-digest }}
-Commit: ${{ github.sha }}
-
-🤖 Automated by GitHub Actions"
+            SHORT_DIGEST="${FULL_DIGEST:0:12}"
+            git commit -m "chore: update deployment digest to ${SHORT_DIGEST}" \
+              -m "" \
+              -m "Automated update from SLSA L3 pipeline" \
+              -m "Image: ${IMAGE_NAME}" \
+              -m "Digest: ${FULL_DIGEST}" \
+              -m "Commit: ${COMMIT_SHA}" \
+              -m "" \
+              -m "Automated by GitHub Actions"
 
             git push
-            echo "✅ Deployment updated and pushed"
+            echo "Deployment updated and pushed"
           fi
 
   # ============================================================================
@@ -270,58 +275,15 @@ Commit: ${{ github.sha }}
           DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
           IMAGE: ${{ needs.build-and-push.outputs.image-name }}
         run: |
-          echo "##  SLSA L3 Pipeline Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## SLSA L3 Pipeline Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### What We Built" >> $GITHUB_STEP_SUMMARY
-          echo "- **Application**: Python web server with SLSA L3" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: ${IMAGE}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Digest**: ${DIGEST}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${IMAGE}" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### SLSA L3 Compliance " >> $GITHUB_STEP_SUMMARY
-          echo "| Level | Requirement | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **L1** | Scripted build |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L1** | Provenance exists |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L2** | Hosted build platform |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L2** | Provenance by service |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L3** | Hardened builds |  Complete (slsa-github-generator) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L3** | Non-falsifiable provenance |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "| **L3** | Image signed (Cosign) |  Complete |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### What's Generated?" >> $GITHUB_STEP_SUMMARY
-          echo "1.  Container image pushed to GHCR" >> $GITHUB_STEP_SUMMARY
-          echo "2.  SLSA L3 provenance attestation (slsa-github-generator)" >> $GITHUB_STEP_SUMMARY
-          echo "3.  Cosign signature (keyless OIDC)" >> $GITHUB_STEP_SUMMARY
-          echo "4.  SBOM (Software Bill of Materials)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Deploy to Kubernetes (Use Digest!)" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# Update deployment with digest reference" >> $GITHUB_STEP_SUMMARY
-          echo "kubectl set image deployment/python-slsa-web \\" >> $GITHUB_STEP_SUMMARY
-          echo "  python-slsa-web=${IMAGE}@${DIGEST} \\" >> $GITHUB_STEP_SUMMARY
-          echo "  -n demo" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# Or apply the updated manifest" >> $GITHUB_STEP_SUMMARY
-          echo "kubectl apply -f k8s/deployment.yaml" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Verify Locally" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# Verify signature" >> $GITHUB_STEP_SUMMARY
-          echo "cosign verify \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --certificate-identity-regexp='https://github.com/${{ github.repository }}/.*' \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\" >> $GITHUB_STEP_SUMMARY
-          echo "  ${IMAGE}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# Verify SLSA L3 provenance" >> $GITHUB_STEP_SUMMARY
-          echo "slsa-verifier verify-image \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --source-uri github.com/${{ github.repository }} \\" >> $GITHUB_STEP_SUMMARY
-          echo "  ${IMAGE}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Kyverno Policies" >> $GITHUB_STEP_SUMMARY
-          echo "The following Kyverno policies will verify:" >> $GITHUB_STEP_SUMMARY
-          echo "-  Images use digests (not mutable tags)" >> $GITHUB_STEP_SUMMARY
-          echo "-  Images are signed with Cosign" >> $GITHUB_STEP_SUMMARY
-          echo "-  Images have SLSA L3 provenance" >> $GITHUB_STEP_SUMMARY
+          echo "### SLSA L3 Compliance" >> $GITHUB_STEP_SUMMARY
+          echo "| Level | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| L1 | Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| L2 | Complete |" >> $GITHUB_STEP_SUMMARY
+          echo "| L3 | Complete |" >> $GITHUB_STEP_SUMMARY
