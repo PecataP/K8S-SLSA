@@ -145,7 +145,10 @@ jobs:
 
       - name: Install slsa-verifier
         run: |
-          curl -LO https://github.com/slsa-framework/slsa-verifier/releases/download/v2.5.1/slsa-verifier-linux-amd64
+          echo "Downloading slsa-verifier..."
+          curl -L --max-time 60 --retry 3 --fail \
+            https://github.com/slsa-framework/slsa-verifier/releases/download/v2.5.1/slsa-verifier-linux-amd64 \
+            -o slsa-verifier-linux-amd64
           sudo mv slsa-verifier-linux-amd64 /usr/local/bin/slsa-verifier
           sudo chmod +x /usr/local/bin/slsa-verifier
           slsa-verifier version
