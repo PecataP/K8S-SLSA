@@ -71,9 +71,9 @@ jobs:
             VERSION=${{ github.ref_name }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v3.4.0
         with:
-          cosign-release: 'latest'
+          cosign-release: 'v2.2.3'
 
       - name: Sign container image with Cosign (Keyless)
         env:
