@@ -229,9 +229,7 @@ jobs:
           echo "Updating deployment with digest: ${DIGEST}"
 
           # Update the image reference in deployment.yaml
-          sed -i "s|image: ${IMAGE_NAME}@sha256:[a-f0-9]*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
-          sed -i "s|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
-          sed -i "s|image: ${IMAGE_NAME}@sha256:REPLACE_WITH_ACTUAL_DIGEST_AFTER_FIRST_BUILD|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
+          sed -i "s|image: ${IMAGE_NAME}.*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
 
           echo "Updated deployment.yaml:"
           cat k8s/deployment.yaml
