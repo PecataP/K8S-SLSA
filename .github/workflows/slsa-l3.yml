@@ -3,6 +3,8 @@ name: SLSA L3 Pipeline
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'k8s/deployment.yaml'  # Don't trigger on automated digest updates
   workflow_dispatch: {}
 
 # Prevent concurrent runs on the same branch to avoid provenance conflicts
@@ -11,7 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write  # Write needed for automated digest updates
+  packages: write
+  id-token: write
 
 env:
   IMAGE_NAME: ghcr.io/pecatap/python-slsa-web
@@ -197,11 +201,66 @@ jobs:
           cosign tree "${IMAGE}@${DIGEST}"
 
   # ============================================================================
+  # Update Deployment with New Digest
+  # ============================================================================
+  update-deployment:
+    name: Update Deployment Digest
+    needs: [build-and-push, provenance, verify]
+    runs-on: self-hosted
+    permissions:
+      contents: write  # Need write to commit back to repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update deployment.yaml with new digest
+        env:
+          IMAGE_NAME: ${{ needs.build-and-push.outputs.image-name }}
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+        run: |
+          echo "Updating deployment with digest: ${DIGEST}"
+
+          # Update the image reference in deployment.yaml
+          sed -i "s|image: ${IMAGE_NAME}@sha256:[a-f0-9]*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
+          sed -i "s|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
+          sed -i "s|image: ${IMAGE_NAME}@sha256:REPLACE_WITH_ACTUAL_DIGEST_AFTER_FIRST_BUILD|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
+
+          echo "Updated deployment.yaml:"
+          cat k8s/deployment.yaml
+
+      - name: Commit and push updated deployment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/deployment.yaml
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update deployment digest to ${DIGEST:0:12}
+
+Automated update from SLSA L3 pipeline
+Image: ${{ needs.build-and-push.outputs.image-name }}
+Digest: ${{ needs.build-and-push.outputs.image-digest }}
+Commit: ${{ github.sha }}
+
+🤖 Automated by GitHub Actions"
+
+            git push
+            echo "✅ Deployment updated and pushed"
+          fi
+
+  # ============================================================================
   # Summary
   # ============================================================================
   summary:
     name: Pipeline Summary
-    needs: [build-and-push, provenance, verify]
+    needs: [build-and-push, provenance, verify, update-deployment]
     runs-on: self-hosted
     if: always()
 
