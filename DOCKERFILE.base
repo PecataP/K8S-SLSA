@@ -1,4 +1,0 @@
-
-FROM python:3.11-alpine
-# any common deps
-WORKDIR /app
