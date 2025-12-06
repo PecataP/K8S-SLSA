@@ -9,7 +9,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b'Hello from my SLSA imroved pipeline!\n')
+        self.wfile.write(b'Hello from my SLSA imroved pipeline, enjoy!\n')
 
     def log_message(self, format, *args):
         # Print logs to stdout for container logging
@@ -23,5 +23,6 @@ def run_server():
 
 if __name__ == '__main__':
     run_server()
+
 
 
