@@ -109,11 +109,6 @@ jobs:
           echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${TAGS}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Image Reference (Use This in K8s)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.IMAGE_NAME }}@${DIGEST}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # Generate SLSA L3 Provenance
@@ -266,5 +261,4 @@ jobs:
           echo "**Image:** ${IMAGE}" >> $GITHUB_STEP_SUMMARY
           echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
 
