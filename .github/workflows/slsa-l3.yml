@@ -122,7 +122,6 @@ jobs:
       packages: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
-      upload-dependencies: false
       image: ${{ needs.build-and-push.outputs.image-name }}
       digest: ${{ needs.build-and-push.outputs.image-digest }}
       registry-username: ${{ github.actor }}
