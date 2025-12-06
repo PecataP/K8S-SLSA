@@ -240,25 +240,3 @@ jobs:
           git commit -m "chore: update deployment digest to ${DIGEST:0:12}"
           git push
 
-
-  # ============================================================================
-  # Summary
-  # ============================================================================
-  summary:
-    name: Pipeline Summary
-    needs: [build-and-push, provenance, verify, update-gitops-repo]
-    runs-on: self-hosted
-    if: always()
-
-    steps:
-      - name: Generate summary
-        env:
-          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
-          IMAGE: ${{ needs.build-and-push.outputs.image-name }}
-        run: |
-          echo "## SLSA L3 Pipeline Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** ${IMAGE}" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** ${DIGEST}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-
