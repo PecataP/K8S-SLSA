@@ -223,7 +223,7 @@ jobs:
           IMAGE_NAME: ${{ needs.build-and-push.outputs.image-name }}
           DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
         run: |
-          sed -i "s|image: ${IMAGE_NAME}.*|image: ${IMAGE_NAME}@${DIGEST}|g" deployment.yaml
+          sed -i "s|image: ${IMAGE_NAME}.*|image: ${IMAGE_NAME}@${DIGEST}|g" k8s/deployment.yaml
           git diff
 
       - name: Commit and push
