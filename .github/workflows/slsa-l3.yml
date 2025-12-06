@@ -3,8 +3,6 @@ name: SLSA L3 Pipeline
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - 'k8s/deployment.yaml'  # Don't trigger on automated digest updates
   workflow_dispatch: {}
 
 # Prevent concurrent runs on the same branch to avoid provenance conflicts
@@ -13,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read  # Write needed for automated digest updates
+  contents: read
   packages: write
   id-token: write
 
@@ -213,14 +211,14 @@ jobs:
     needs: [build-and-push, provenance, verify]
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # but this is for K8S-SLSA; you’ll use a PAT for K8S-CD
+      contents: write
 
     steps:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
         with:
           repository: PecataP/K8S-CD
-          token: ${{ secrets.GITOPS_PAT }}  # classic personal access token
+          token: ${{ secrets.GITOPS_PAT }}
           path: gitops
 
       - name: Update deployment.yaml with new digest
@@ -253,7 +251,7 @@ jobs:
   # ============================================================================
   summary:
     name: Pipeline Summary
-    needs: [build-and-push, provenance, verify, update-deployment]
+    needs: [build-and-push, provenance, verify, update-gitops-repo]
     runs-on: self-hosted
     if: always()
 
