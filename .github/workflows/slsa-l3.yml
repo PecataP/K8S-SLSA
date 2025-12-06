@@ -236,7 +236,7 @@ jobs:
             exit 0
           fi
 
-          git add deployment.yaml
+          git add k8s/deployment.yaml
           git commit -m "chore: update deployment digest to ${DIGEST:0:12}"
           git push
 
